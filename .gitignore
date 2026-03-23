@@ -1,0 +1,22 @@
+# Runtime state (not source)
+config.env
+learnings.db
+logs/
+HEALTH
+__pycache__/
+*.pyc
+.disabled
+.disabled.*
+
+# Internal spec (development artifact)
+.spec/
+
+# Ignore all hidden files and directories
+.*
+
+# Keep the .gitignore file tracked
+!.gitignore
+
+# OS
+.DS_Store
+

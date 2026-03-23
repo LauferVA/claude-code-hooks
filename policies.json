@@ -1,0 +1,148 @@
+{
+  "version": "2.0",
+  "description": "Claude Code Hooks policy definitions. Machine-readable for cross-IDE portability.",
+
+  "protected_files": [
+    "*lock.json",
+    "*/package-lock.json",
+    "*/poetry.lock",
+    "*/Cargo.lock",
+    "*/yarn.lock",
+    "*/uv.lock",
+    "*/pnpm-lock.yaml",
+    "*/Gemfile.lock",
+    "*/composer.lock",
+    "*/.git/*"
+  ],
+
+  "safe_bash_commands": [
+    "ls", "pwd", "echo", "cat", "head", "tail", "wc",
+    "git status", "git diff", "git log", "git branch",
+    "git show", "git rev-parse",
+    "python --version", "python3 --version",
+    "node --version", "npm --version",
+    "cargo --version", "go version",
+    "which", "type"
+  ],
+
+  "auto_approve_tools": ["Read", "Glob", "Grep", "WebSearch", "WebFetch"],
+
+  "dangerous_command_patterns": [
+    {"pattern": "rm -rf / or ~", "action": "block"},
+    {"pattern": "fork bomb", "action": "block"},
+    {"pattern": "dd to block device", "action": "block"},
+    {"pattern": "curl|bash or wget|bash", "action": "block"},
+    {"pattern": "DROP DATABASE/TABLE", "action": "block"},
+    {"pattern": "TRUNCATE", "action": "block"},
+    {"pattern": "DELETE FROM without WHERE", "action": "block"}
+  ],
+
+  "formatters": {
+    "py": "ruff check --fix && ruff format",
+    "ts": "biome check --fix",
+    "js": "biome check --fix",
+    "jsx": "biome check --fix",
+    "tsx": "biome check --fix",
+    "rs": "rustfmt",
+    "go": "gofmt -w"
+  },
+
+  "type_checkers": {
+    "py": "mypy",
+    "ts": "tsc --noEmit",
+    "tsx": "tsc --noEmit"
+  },
+
+  "test_runners": {
+    "python": "pytest --tb=short -q",
+    "typescript": "npx vitest run",
+    "javascript": "npm test",
+    "rust": "cargo test",
+    "go": "go test ./..."
+  },
+
+  "mock_code_patterns": {
+    "python": {
+      "method": "ast.parse",
+      "detects": "functions with sole body of pass or raise NotImplementedError()",
+      "excludes": "abstract base classes (ABC import or @abstractmethod)"
+    },
+    "js_ts": {
+      "method": "regex",
+      "detects": "throw new Error('not implemented'), // TODO: implement, /* stub */",
+      "condition": "must be sole body between { and }"
+    },
+    "compiled": {
+      "method": "regex",
+      "detects": "todo!(), unimplemented!(), panic!('not implemented')",
+      "condition": "must be sole body between { and }"
+    }
+  },
+
+  "excluded_paths": {
+    "extensions": [".csv", ".parquet", ".db", ".sqlite", ".png", ".jpg",
+                   ".jpeg", ".pdf", ".zip", ".whl", ".tar", ".gz", ".ico",
+                   ".svg", ".woff", ".woff2", ".ttf", ".eot", ".mp3",
+                   ".mp4", ".wav", ".webm"],
+    "directories": ["node_modules", "__pycache__", ".git", "dist", "build",
+                    "target", ".next", ".nuxt", "coverage", ".mypy_cache",
+                    ".pytest_cache", ".ruff_cache", "venv", ".venv"]
+  },
+
+  "error_escalation": {
+    "max_attempts": 5,
+    "attempt_1_2": "auto_retry",
+    "attempt_3": "research_trigger",
+    "attempt_4": "user_escalation_with_forced_mobile",
+    "attempt_5_plus": "hard_block_exit_2"
+  },
+
+  "failed_paths": {
+    "ttl_days": 7,
+    "max_injected": 20
+  },
+
+  "pre_compact_output_cap_bytes": 16384,
+  "user_prompt_submit_output_cap_bytes": 8192,
+
+  "profiles": {
+    "minimal": {
+      "description": "Safety-critical only. Blocks destructive commands and secrets.",
+      "hooks_enabled": [
+        "session_start", "session_end", "pre_tool_use:guards",
+        "task_completed:secret_gate", "permission_request", "elicitation"
+      ],
+      "auto_infer_branches": ["experimental/*", "spike/*"]
+    },
+    "standard": {
+      "description": "Full quality enforcement. Default for feature branches.",
+      "hooks_enabled": [
+        "ALL minimal hooks",
+        "pre_tool_use:full", "post_tool_use", "post_tool_use_failure",
+        "stop", "pre_compact", "post_compact", "user_prompt_submit",
+        "subagent_start", "subagent_stop", "task_completed:full",
+        "notification"
+      ],
+      "auto_infer_branches": ["feature/*"]
+    },
+    "strict": {
+      "description": "All hooks including advisory. For production branches.",
+      "hooks_enabled": [
+        "ALL standard hooks",
+        "context_backup", "code_summary", "command_redirect_suggestions"
+      ],
+      "auto_infer_branches": ["main", "master", "release/*", "production/*"]
+    }
+  },
+
+  "branch_profile_mapping": {
+    "main": "strict",
+    "master": "strict",
+    "release/*": "strict",
+    "production/*": "strict",
+    "feature/*": "standard",
+    "experimental/*": "minimal",
+    "spike/*": "minimal",
+    "default": "standard"
+  }
+}
