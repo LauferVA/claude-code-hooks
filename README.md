@@ -1,6 +1,6 @@
 # Claude Code Hooks
 
-A comprehensive event-driven hook system for Claude Code that provides safety guardrails, code quality enforcement, context preservation, error recovery, and multi-agent coordination. Hooks fire automatically on every Claude Code session — no per-project configuration needed.
+An event-driven hook system for Claude Code. Provides some safety guardrails, code quality enforcement, context preservation, error recovery, and multi-agent coordination. Hooks fire automatically on every Claude Code session — no per-project configuration needed.
 
 ## Quick Start
 
