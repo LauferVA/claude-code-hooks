@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
 
 from hooks_common import (
     PayloadParser, SessionDB, Logger, KillSwitch, ProfileManager,
-    Notifier, Config, ReentrancyGuard,
+    Notifier, Config,
 )
 
 DISPATCHER_NAME = "post_tool_use_failure"

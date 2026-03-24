@@ -318,21 +318,6 @@ def main() -> int:
                 (session_id, snapshot_json),
             )
 
-            # Write marker file for post_compact
-            # Content: the snapshot ID so post_compact can reference it
-            snapshot_id = db.query_scalar(
-                "SELECT id FROM context_snapshots "
-                "WHERE session_id = ? AND snapshot_type = 'pre_compact' "
-                "ORDER BY id DESC LIMIT 1",
-                (session_id,),
-            )
-            if snapshot_id and project_dir:
-                marker_path = Path(project_dir) / ".claude-pre-compact-marker"
-                try:
-                    marker_path.write_text(str(snapshot_id))
-                except OSError as e:
-                    logger.log("WARN", f"Could not write pre-compact marker: {e}")
-
         # Output everything to stdout
         print(output)
 

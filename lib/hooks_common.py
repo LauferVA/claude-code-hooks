@@ -12,9 +12,7 @@ import sqlite3
 import subprocess
 import sys
 import time
-import fcntl
 import hashlib
-import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -62,6 +60,9 @@ class Config:
                     key, _, value = line.partition("=")
                     key = key.strip()
                     value = value.strip().strip('"').strip("'")
+                    # Strip inline comments (e.g., "10485760  # 10MB")
+                    if "#" in value:
+                        value = value.split("#")[0].strip()
                     cfg[key] = value
         cls._cache = cfg
         return cfg
@@ -98,7 +99,10 @@ class Logger:
         self.name = dispatcher_name
         LOGS_DIR.mkdir(parents=True, exist_ok=True)
         self.log_file = LOGS_DIR / f"{dispatcher_name}.log"
-        self.max_bytes = int(Config.get("HOOKS_LOG_MAX_BYTES", "10485760"))
+        try:
+            self.max_bytes = int(Config.get("HOOKS_LOG_MAX_BYTES", "10485760"))
+        except ValueError:
+            self.max_bytes = 10485760
         self._start_time: float = 0.0
 
     def start(self) -> None:
@@ -454,56 +458,3 @@ class ProfileManager:
         required_level = PROFILE_LEVELS.get(profile_tag, 1)
         return current_level >= required_level
 
-
-# ---------------------------------------------------------------------------
-# ReentrancyGuard
-# ---------------------------------------------------------------------------
-
-class ReentrancyGuard:
-    """Atomic lockfile + same-file-same-tool 3x/60s circuit breaker."""
-
-    def __init__(self, hook_id: str, session_id: str) -> None:
-        self.lock_path = Path(tempfile.gettempdir()) / f"claude-hook-{hook_id}-{session_id}.lock"
-        self._fd: int | None = None
-
-    def acquire(self) -> bool:
-        """Try to acquire lock. Returns False if already held."""
-        try:
-            self._fd = os.open(str(self.lock_path), os.O_CREAT | os.O_WRONLY)
-            fcntl.flock(self._fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            return True
-        except (OSError, BlockingIOError):
-            if self._fd is not None:
-                os.close(self._fd)
-                self._fd = None
-            return False
-
-    def release(self) -> None:
-        if self._fd is not None:
-            try:
-                fcntl.flock(self._fd, fcntl.LOCK_UN)
-                os.close(self._fd)
-            except OSError:
-                pass
-            self._fd = None
-        try:
-            self.lock_path.unlink(missing_ok=True)
-        except OSError:
-            pass
-
-    @staticmethod
-    def check_circuit_breaker(
-        tool_name: str, file_path: str, session_id: str, db: SessionDB
-    ) -> bool:
-        """Returns True if breaker is tripped (same file+tool 3x in 60s)."""
-        if not file_path or not tool_name:
-            return False
-        rows = db.query(
-            "SELECT COUNT(*) as cnt FROM hook_events "
-            "WHERE session_id = ? AND dispatcher = ? "
-            "AND payload_summary LIKE ? "
-            "AND timestamp > datetime('now', '-60 seconds')",
-            (session_id, f"post_tool_use:{tool_name}", f"%{file_path}%"),
-        )
-        count = rows[0]["cnt"] if rows else 0
-        return count >= 3

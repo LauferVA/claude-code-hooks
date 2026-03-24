@@ -100,7 +100,8 @@ def _build_markdown(
     try:
         failed = db.query(
             "SELECT file_path, approach, reason_failed FROM failed_paths "
-            "WHERE still_relevant = 1 ORDER BY id DESC LIMIT 20",
+            "WHERE session_id = ? AND still_relevant = 1 ORDER BY id DESC LIMIT 20",
+            (session_id,),
         )
         if failed:
             for f in failed:

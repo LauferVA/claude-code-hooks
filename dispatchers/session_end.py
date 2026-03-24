@@ -58,12 +58,13 @@ try:
     except Exception:
         pass
 
-    # Query failed paths
+    # Query failed paths (session-scoped)
     failed_paths = []
     try:
         cursor = sconn.execute(
             "SELECT file_path, approach, reason_failed FROM failed_paths "
-            "WHERE still_relevant = 1 ORDER BY id DESC LIMIT 20",
+            "WHERE session_id = ? AND still_relevant = 1 ORDER BY id DESC LIMIT 20",
+            (session_id,),
         )
         failed_paths = [dict(row) for row in cursor.fetchall()]
     except Exception:
