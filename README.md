@@ -1,3 +1,9 @@
+> **Archived 2026-08-31.** This repository is superseded: the hook system is now
+> maintained as part of a consolidated Claude Code baseline configuration
+> (publication pending — a link will be added here when it is public). This
+> snapshot predates a 2026-08-31 revision of the hook set and no longer
+> reflects the maintained system.
+
 # Claude Code Hooks
 
 An event-driven hook system for Claude Code. Provides some safety guardrails, code quality enforcement, context preservation, error recovery, and multi-agent coordination. Hooks fire automatically on every Claude Code session — no per-project configuration needed.
